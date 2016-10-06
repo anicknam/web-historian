@@ -76,7 +76,10 @@ exports.handleRequest = function (req, res) {
       
       archive.isUrlInList(urlToStore, function(inList) {
         if (inList) {
-
+          statusCode = 302;
+          headers['Location'] = '/loading.html';  
+          res.writeHead(statusCode, headers);
+          res.end();
         } else {
           archive.isUrlArchived(urlToStore, function(exists) {
             if (exists) {
