@@ -27,10 +27,26 @@ exports.handleRequest = function (req, res) {
     });
     return;
   }
+
+  if (req.method === 'GET' && req.url === '/loading.html') {
+     // we will give them index.html
+    pathToRequestedFile += '/loading.html';
+
+    fs.readFile(pathToRequestedFile, function(error, content) {
+      if (error) {
+        throw error;
+      } else {
+        statusCode = 200;
+        res.writeHead(statusCode, headers);
+        res.end(content.toString());
+      }
+    });
+    return;
+  }
     
   
   var parsedURL = url.parse(req.url);
-  var pathToArchivedSite = path.join(__dirname, '../test/testdata/sites');
+  var pathToArchivedSite = path.join(__dirname, '../archives/sites');
   if (req.method === 'GET') {
     pathToArchivedSite += parsedURL.path;
      
@@ -50,52 +66,46 @@ exports.handleRequest = function (req, res) {
   }
 
   
-  var pathToSitesList = path.join(__dirname, '../test/testdata/sites.txt');
+  var pathToSitesList = archive.paths.list;
+  console.log(pathToSitesList);
   if (req.method === 'POST') {
     
     req.on('data', function(data) {
 
       var urlToStore = data.toString().slice(4);
-      fs.appendFile(pathToSitesList, urlToStore + '\n', function(error) {
-        if (error) {
-          statusCode = 404;
-          res.writeHead(statusCode, headers);
-          res.end('Requested archive not found');
+      
+      archive.isUrlInList(urlToStore, function(inList) {
+        if (inList) {
+
         } else {
-          statusCode = 302; 
-          res.writeHead(statusCode, headers);
-          res.end('Success');
+          archive.isUrlArchived(urlToStore, function(exists) {
+            if (exists) {
+              statusCode = 302;
+              headers['Location'] = '/' + urlToStore;  
+              res.writeHead(statusCode, headers); 
+              res.end();           
+            } else {
+              fs.appendFile(pathToSitesList, urlToStore + '\n', function(error) {
+                if (error) {
+                  statusCode = 404;
+                  res.writeHead(statusCode, headers);
+                  res.end('Requested archive not found');
+                } else {
+                  statusCode = 302;
+                  headers['Location'] = '/loading.html';  
+                  res.writeHead(statusCode, headers);
+                  res.end();
+                }
+              });
+            }
+          });
         }
-      });
-    });   
+      });  
+    });
+  
     return;
   }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-  if (req.method === 'POST') {
-    res.end();
- 
-  }
 
 
 };
